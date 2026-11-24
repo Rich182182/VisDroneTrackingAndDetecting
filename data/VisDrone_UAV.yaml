@@ -1,0 +1,12 @@
+path: E:/Datasets/VisDroneTrackingAndDetecting/data/VisDrone_UAV_Clean
+train: images/train
+val: images/val
+
+names:
+  0: pedestrian
+  1: people
+  2: car
+  3: van
+  4: truck
+  5: bus
+  6: motor

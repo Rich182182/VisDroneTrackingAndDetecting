@@ -1,0 +1,4 @@
+Experiment,Model,Tracker,IMGSZ,MOTA (%),IDF1 (%),HOTA (%),ID Switches,MT (>=80%),ML (<=20%),Matched (TP),Missed (FN),False Pos,Infer Latency (ms),Track Latency (ms),Total Latency (ms),Jitter (ms),FPS,Peak VRAM (MB),Pure GPU (ms),Disk Read (ms)
+01_YOLOv8s_COCO_Vanilla,yolov8s.pt,bytetrack_vanilla,800,32.65,45.87,33.9,1075,406,1160,101230,190782,5536,22.2,1.62,51.21,43.13,19.5,265.5,27.35,27.39
+02_YOLOv8s_VisDrone_FP32_Vanilla,yolov8s_visdrone.pt,bytetrack_vanilla,800,47.72,59.24,40.8,2222,715,772,148695,142170,8822,18.43,2.2,39.05,15.8,25.6,265.3,8.79,18.42
+03_YOLOv8s_VisDrone_FP32_GMC,yolov8s_visdrone.pt,bytetrack_gmc,800,45.6,60.44,42.08,1393,696,816,140693,151001,7036,19.13,4.92,42.28,15.89,23.7,265.3,8.8,18.23
