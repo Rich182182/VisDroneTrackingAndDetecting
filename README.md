@@ -4,10 +4,11 @@ End-to-end computer vision benchmarking pipeline for UAV aerial surveillance, ev
 
 Evaluated across all 17 sequences of the **VisDrone2019-MOT-test-dev** benchmark at `800x800` input resolution on an **NVIDIA GeForce RTX 3060 Laptop GPU (6 GB VRAM)**.
 
+**Live Demo:** [Hugging Face Spaces - `Rich182/visdrone-uav-tracking`](https://huggingface.co/spaces/Rich182/visdrone-uav-tracking) (runs on ZeroGPU with configurable confidence threshold, GMC flow vector overlay, object trajectories, and adjustable frame limit to stay within GPU session limits).
 
 ---
 
-## Visual Comparison (`VisDrone2019-MOT-test-dev` — `uav0000249_00001_v`)
+## Visual Comparison
 
 > **Overlay Legend:** **Green** = True Positive (`TP`) | **Magenta** = False Positive (`FP`) | **Red** = Missed Ground Truth (`FN`) | **Cyan Vectors** = Sparse Optical Flow GMC Background Inliers
 
