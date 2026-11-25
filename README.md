@@ -1,15 +1,13 @@
 # Aerial Multi-Object Detection and Tracking Benchmark (VisDrone2019-MOT)
 
-End-to-end computer vision benchmarking pipeline for UAV aerial surveillance, evaluating convolutional and transformer-based detectors (**YOLOv8s**, **YOLOv10s**, **YOLO11n**, **RT-DETR-L**) paired with **ByteTrack** and **Sparse Optical Flow Global Motion Compensation (GMC)** under **PyTorch FP32** and **NVIDIA TensorRT (FP16 / INT8)** quantization.
+End-to-end computer vision benchmarking and deployment pipeline for UAV aerial surveillance, evaluating convolutional and transformer-based detectors (**YOLOv8s**, **YOLOv10s**, **YOLO11n**, **RT-DETR-L**) paired with **ByteTrack** and **Sparse Optical Flow Global Motion Compensation (GMC)** under **PyTorch FP32** and **NVIDIA TensorRT (FP16 / INT8)** quantization.
 
-Evaluated across all 17 sequences of the **VisDrone2019-MOT-test-dev** benchmark at `800x800` input resolution on an **NVIDIA GeForce RTX 3060 Laptop GPU (6 GB VRAM)**.
-
-**Live Demo:** [Hugging Face Spaces - `Rich182/visdrone-uav-tracking`](https://huggingface.co/spaces/Rich182/visdrone-uav-tracking) (runs on ZeroGPU with configurable confidence threshold, GMC flow vector overlay, object trajectories, and adjustable frame limit to stay within GPU session limits).
+**Live Interactive Demo:** [Hugging Face Spaces - `Rich182/visdrone-uav-tracking`](https://huggingface.co/spaces/Rich182/visdrone-uav-tracking)  
+**Pre-Trained Checkpoints:** [GitHub Release v1.0.0 (`800x800` Fine-Tuned Weights)](https://github.com/Rich182182/VisDroneTrackingAndDetecting/releases/tag/v1.0.0)
 
 ---
 
-## Visual Comparison
-
+## Visual Comparison 
 > **Overlay Legend:** **Green** = True Positive (`TP`) | **Magenta** = False Positive (`FP`) | **Red** = Missed Ground Truth (`FN`) | **Cyan Vectors** = Sparse Optical Flow GMC Background Inliers
 
 | **1. Baseline: YOLOv8s (COCO) + Vanilla ByteTrack** | **2. YOLOv8s (Fine-Tuned, TRT INT8) + ByteTrack-GMC** |
@@ -22,7 +20,7 @@ Evaluated across all 17 sequences of the **VisDrone2019-MOT-test-dev** benchmark
 | ![YOLO11n INT8 GMC](outputs/gifs/03_yolo11n_int8_gmc.gif) | ![RT-DETR-L FP16 GMC](outputs/gifs/05_rtdetr_l_fp16_gmc.gif) |
 | **37.30% HOTA** \| 48.66% IDF1 \| 782 ID Sw \| **2.16 ms GPU** | **40.46% HOTA** \| 61.95% IDF1 \| 6,632 ID Sw \| **7.47 ms GPU** |
 
-*Note on visual grid selection: The 2x2 grid highlights the four distinct architectural and precision regimes (unadapted COCO baseline, top-HOTA CNN `YOLOv8s INT8`, ompact edge CNN `YOLO11n INT8`, and Vision Transformer `RT-DETR-L FP16`). The NMS-free `YOLOv10s` model exhibits visually similar tracking behavior to `YOLOv8s` (`41.47%` vs. `42.12%` HOTA in INT8) and is fully reported in the quantitative tables and Pareto plots below.*
+*Note on visual grid selection: The 2x2 grid contrasts four distinct architectural and precision regimes (unadapted COCO baseline, top-HOTA CNN `YOLOv8s INT8`, compact edge CNN `YOLO11n INT8`, and Vision Transformer `RT-DETR-L FP16`). The NMS-free `YOLOv10s` model exhibits visually similar tracking behavior to `YOLOv8s` (`41.47%` vs. `42.12%` HOTA in INT8) and is fully reported in the quantitative tables and Pareto plots below.*
 
 ---
 
@@ -31,26 +29,48 @@ Evaluated across all 17 sequences of the **VisDrone2019-MOT-test-dev** benchmark
 * **Primary Metric Focus (HOTA vs. MOTA):** Because aerial tracking suffers from frequent camera motion and small-object occlusions, **HOTA** (*Higher Order Tracking Accuracy*) serves as the primary evaluation metric, balancing detection accuracy ($\text{DetA}$) with trajectory association stability ($\text{AssA}$).
 * **Optimal Production Balance (`YOLOv8s TRT INT8 + GMC`):** Achieves the highest overall tracking consistency at **42.12% HOTA** (`42.13%` in FP16) and **46.40% MOTA**, compressing isolated neural network forward-pass latency by **2.94x** (`8.86 ms` to `3.01 ms`) with zero accuracy degradation.
 * **NMS-Free Architecture Stability (`YOLOv10s`):** Eliminating Non-Maximum Suppression via dual-label assignments yields **41.78% HOTA** (`41.47%` in INT8) and the lowest ID switch count among medium-scale models (`1,188` ID switches in FP32 vs. `1,393` for YOLOv8s and `6,407` for RT-DETR-L), running at **3.06 ms** isolated GPU latency in INT8.
-* **Domain Adaptation & Optical Flow GMC Impact:** Fine-tuning on VisDrone aerial imagery boosts YOLOv8s HOTA from **33.90%** to **40.80%** (`+6.90 pp`), while adding sparse Lucas-Kanade optical flow GMC with RANSAC affine estimation raises HOTA to **42.08%** (`+8.18 pp` total) and cuts identity switches by **37.3%** (`2,222` down to `1,393`).
+* **Domain Adaptation & Optical Flow GMC Impact:** Fine-tuning on VisDrone aerial imagery boosts YOLOv8s HOTA from **33.90%** to **40.80%** (`+6.90 pp`), while adding sparse Lucas-Kanade optical flow GMC with RANSAC affine estimation raises HOTA to **42.08%** (`+8.18 pp` total), cuts identity switches by **37.3%** (`2,222` down to `1,393`), and reduces the relative ID switch rate per matched object to **0.99%** (outperforming the `1.06%` rate of the COCO baseline despite tracking 39% more targets).
 * **CNN vs. Vision Transformer Quantization Behavior:** All three CNN architectures (`YOLOv8s`, `YOLOv10s`, `YOLO11n`) retain full HOTA accuracy under Post-Training Quantization (PTQ) to **INT8** (`2.16–3.06 ms` pure GPU latency). Conversely, **RT-DETR-L** achieves the highest raw detection recall (`52.23% MOTA`, `40.56% HOTA`) and accelerates **5.30x** in **TRT FP16** (`39.57 ms` to `7.47 ms`), but undergoes *PTQ Quantization Collapse* (`0.00%` at standard confidence threshold) in 8-bit integer precision due to activation outliers in self-attention and layer normalization blocks without Quantization-Aware Training (QAT).
-* **End-to-End Bottleneck Analysis (Amdahl's Law):** Once TensorRT compresses GPU inference below `3.1 ms`, full pipeline throughput (`23.9–25.1 FPS`) is governed by synchronous disk frame decoding (`~18.3 ms`) and CPU optical-flow camera motion estimation (`~4.5–5.0 ms`).
+* **Edge Deployment & Bottleneck Analysis (Amdahl's Law):** In offline file-based evaluation on an NVIDIA RTX 3060 Laptop GPU, pure neural network execution accounts for only ~7% of total frame time (`2.16–3.06 ms` out of `39.85–41.82 ms`), while synchronous disk decoding (`~18.3 ms`) and Python/PCIe tensor overhead (`~15 ms`) dominate. Replacing file I/O and Python wrappers with a streaming C++ / NVIDIA DeepStream pipeline eliminates this host bottleneck for real-time deployment on embedded edge hardware (e.g., NVIDIA Jetson Orin Nano / NX).
 
+---
+
+## Tech Stack & Pipeline Architecture
+
+* **Deep Learning & Inference:** PyTorch, Ultralytics, NVIDIA TensorRT (`FP16` / `INT8` PTQ calibration), Torchvision (`batched_nms`)
+* **Multi-Object Tracking & Computer Vision:** OpenCV (Pyramidal Lucas-Kanade Optical Flow, RANSAC Affine Estimation), ByteTrack (two-stage Kalman + IoU cascade), Supervision
+* **Evaluation & Profiling:** Custom vectorized 19-threshold HOTA engine, `motmetrics` (CLEAR MOT, IDF1), CUDA Event GPU latency profiler
+* **Deployment:** Gradio Web Application hosted on Hugging Face Spaces
+
+```mermaid
+flowchart LR
+    A[UAV Video Stream / Frame] --> B[GPU Letterbox & Normalization]
+    B --> C[TensorRT Engine<br/>FP16 / INT8]
+    C --> D[Unified Decoder & Batched NMS]
+    A --> E[Sparse Optical Flow GMC<br/>Shi-Tomasi + PyrLK + RANSAC]
+    E --> F[Kalman State Camera<br/>Motion Compensation]
+    D --> G[ByteTrack Two-Stage<br/>Cascade Association]
+    F --> G
+    G --> H[19-Alpha HOTA & CLEAR MOT<br/>Evaluator / GT Visualizer]
+```
 
 ---
 
 ## Quantitative Benchmarks & Analysis
 
-All metrics are computed strictly according to the official VisDrone-MOT evaluation protocol across 7 target categories (`pedestrian`, `people`, `car`, `van`, `truck`, `bus`, `motor`), filtering out ignored regions (`score == 0` or `class == 0`).
+All models were fine-tuned on the VisDrone2019-MOT training split and evaluated across all **17 sequences** (`VisDrone2019-MOT-test-dev`) at `800x800` resolution on an **NVIDIA GeForce RTX 3060 Laptop GPU (6 GB VRAM)**. Metrics follow the official VisDrone-MOT protocol across 7 target categories (`pedestrian`, `people`, `car`, `van`, `truck`, `bus`, `motor`), filtering out ignored regions (`score == 0` or `class == 0`).
 
 ### 1. Domain Adaptation & Camera Motion Compensation Ablation
 
 Progressive evaluation isolating the impact of VisDrone fine-tuning and sparse optical-flow Global Motion Compensation (`GMC`) on `YOLOv8s` (`imgsz=800`, `FP32`):
 
-| Experiment | Model | Tracker | HOTA (%) | IDF1 (%) | MOTA (%) | ID Switches | Pure GPU (ms) | Total Latency (ms) | FPS |
-| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| `01_YOLOv8s_COCO_Vanilla` | `yolov8s.pt` | `bytetrack_vanilla` | 33.90 | 45.87 | 32.65 | 1,075 | 27.35 | 51.21 | 19.5 |
-| `02_YOLOv8s_VisDrone_FP32_Vanilla` | `yolov8s_visdrone.pt` | `bytetrack_vanilla` | 40.80 | 59.24 | 47.72 | 2,222 | 8.79 | 39.05 | 25.6 |
-| `03_YOLOv8s_VisDrone_FP32_GMC` | `yolov8s_visdrone.pt` | `bytetrack_gmc` | **42.08** | **60.44** | 45.60 | **1,393** | 8.80 | 42.28 | 23.7 |
+| Experiment | Model | Tracker | HOTA (%) | IDF1 (%) | MOTA (%) | ID Switches | ID Sw / TP (%) | Pure GPU (ms) | Total Latency (ms) | FPS |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| `01_YOLOv8s_COCO_Vanilla` | `yolov8s.pt` | `bytetrack_vanilla` | 33.90 | 45.87 | 32.65 | 1,075 | 1.06% | 27.35 | 51.21 | 19.5 |
+| `02_YOLOv8s_VisDrone_FP32_Vanilla` | `yolov8s_visdrone.pt` | `bytetrack_vanilla` | 40.80 | 59.24 | 47.72 | 2,222 | 1.49% | 8.79 | 39.05 | 25.6 |
+| `03_YOLOv8s_VisDrone_FP32_GMC` | `yolov8s_visdrone.pt` | `bytetrack_gmc` | **42.08** | **60.44** | 45.60 | **1,393** | **0.99%** | 8.80 | 42.28 | 23.7 |
+
+*Note: While raw dataset-wide ID switches increase from `1,075` (COCO) to `1,393` (VisDrone + GMC), the fine-tuned detector tracks **39.0% more true-positive targets** (`140,693` vs. `101,230`), including heavily occluded small vehicles. Normalized by matched detections, GMC reduces relative ID switch frequency to `0.99%`—improving identity stability over both the unadapted COCO baseline (`1.06%`) and non-GMC fine-tuned model (`1.49%`).*
 
 ![Ablation Study Impact](outputs/figures/03_ablation_gmc_impact.png)
 
@@ -58,16 +78,16 @@ Progressive evaluation isolating the impact of VisDrone fine-tuning and sparse o
 
 Comparison across four detector families paired with `ByteTrack-GMC` (`imgsz=800`, `FP32`):
 
-| Experiment | Architecture | HOTA (%) | IDF1 (%) | MOTA (%) | ID Switches | Matched (TP) | False Pos | Pure GPU (ms) | Peak VRAM (MB) |
-| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| `YOLOv8s_COCO_GMC` | CNN (Anchor-Free) | 34.62 | 45.93 | 30.86 | 642 | 95,388 | 4,928 | 8.91 | 265.5 |
-| `YOLOv8s_VisDrone_FP32_GMC` | CNN (Anchor-Free) | **42.08** | 60.44 | 45.60 | 1,393 | 140,693 | 7,036 | 8.80 | 265.3 |
-| `YOLO11n_COCO_GMC` | CNN (Edge Nano) | 30.10 | 38.23 | 24.24 | 481 | 75,128 | 4,092 | 8.78 | 230.2 |
-| `YOLO11n_VisDrone_FP32_GMC` | CNN (Edge Nano) | 37.34 | 48.22 | 32.80 | **700** | 100,257 | **4,110** | **8.64** | **230.1** |
-| `YOLOv10s_COCO_GMC` | CNN (NMS-Free) | 34.08 | 43.79 | 29.04 | 632 | 90,314 | 5,203 | 8.68 | 270.2 |
-| `YOLOv10s_VisDrone_FP32_GMC` | CNN (NMS-Free) | 41.78 | 57.50 | 42.60 | 1,188 | 131,697 | 6,850 | 8.71 | 269.9 |
-| `RTDETR_L_COCO_GMC` | Vision Transformer | 38.30 | 55.37 | 40.46 | 1,843 | 134,291 | 15,706 | 40.34 | 418.2 |
-| `RTDETR_L_VisDrone_FP32_GMC` | Vision Transformer | 40.56 | **62.01** | **52.23** | 6,407 | **184,517** | 31,444 | 39.54 | 414.6 |
+| Experiment | Architecture | Params / `.pt` Size | HOTA (%) | IDF1 (%) | MOTA (%) | ID Switches | Matched (TP) | False Pos | Pure GPU (ms) | Peak VRAM (MB) |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| `YOLOv8s_COCO_GMC` | CNN (Anchor-Free) | 11.2M / 22.5 MB | 34.62 | 45.93 | 30.86 | 642 | 95,388 | 4,928 | 8.91 | 265.5 |
+| `YOLOv8s_VisDrone_FP32_GMC` | CNN (Anchor-Free) | 11.2M / 22.5 MB | **42.08** | 60.44 | 45.60 | 1,393 | 140,693 | 7,036 | 8.80 | 265.3 |
+| `YOLO11n_COCO_GMC` | CNN (Edge Nano) | 2.6M / 5.5 MB | 30.10 | 38.23 | 24.24 | 481 | 75,128 | 4,092 | 8.78 | 230.2 |
+| `YOLO11n_VisDrone_FP32_GMC` | CNN (Edge Nano) | 2.6M / 5.5 MB | 37.34 | 48.22 | 32.80 | **700** | 100,257 | **4,110** | **8.64** | **230.1** |
+| `YOLOv10s_COCO_GMC` | CNN (NMS-Free) | 7.2M / 16.5 MB | 34.08 | 43.79 | 29.04 | 632 | 90,314 | 5,203 | 8.68 | 270.2 |
+| `YOLOv10s_VisDrone_FP32_GMC` | CNN (NMS-Free) | 7.2M / 16.5 MB | 41.78 | 57.50 | 42.60 | 1,188 | 131,697 | 6,850 | 8.71 | 269.9 |
+| `RTDETR_L_COCO_GMC` | Vision Transformer | 32.0M / 66.2 MB | 38.30 | 55.37 | 40.46 | 1,843 | 134,291 | 15,706 | 40.34 | 418.2 |
+| `RTDETR_L_VisDrone_FP32_GMC` | Vision Transformer | 32.0M / 66.2 MB | 40.56 | **62.01** | **52.23** | 6,407 | **184,517** | 31,444 | 39.54 | 414.6 |
 
 ### 3. TensorRT Optimization & Hardware Latency Profiling
 
@@ -96,12 +116,12 @@ Post-training conversion from PyTorch `FP32` to TensorRT `FP16` and `INT8` engin
 
 ---
 
-## System Architecture & Pipeline Design
+## Honest Limitations & Failure Modes
 
-* **GPU-Accelerated Pre/Post-Processing (`src/benchmark.py`):** Bypasses high-overhead Python wrapper loops by executing tensor normalization, bilinear letterboxing, and `torchvision.ops.batched_nms` directly on CUDA tensors, with unified decoding for both CNN `(1, 4+nc, N)` and RT-DETR `(1, 300, 6)` output layouts.
-* **Global Motion Compensation (`src/trackers/cmc.py`):** Tracks Shi-Tomasi background keypoints via pyramidal Lucas-Kanade optical flow (`cv2.calcOpticalFlowPyrLK`) and estimates a 2D affine transformation (`cv2.estimateAffinePartial2D` with RANSAC) to project Kalman filter track predictions into the current camera frame before IoU matching.
-* **Custom MOT Evaluation Engine (`src/metrics.py`):** Computes CLEAR MOT (`MOTA`, `MOTP`, `ID Switches`, `MT`, `ML`) and `IDF1` via `motmetrics` alongside a vectorized 19-threshold ($\alpha \in [0.05, 0.95]$) Hungarian-matching implementation of **HOTA**.
-* **Diagnostic Visualizer (`src/visualizer.py`):** Renders frame-by-frame Hungarian IoU matching against ground truth (`TP` / `FP` / `FN`), object trajectories, and optical-flow camera motion vectors (`inliers` vs. `outliers`).
+* **Small-Scale Target Recall vs. Input Resolution (`imgsz=800`):** At high UAV altitudes, pedestrians, motorcycles, and distant vehicles occupy fewer than `12x12` pixels after downscaling 1080p/2.7K frames to `800x800`, resulting in higher false-negative rates on `pedestrian` and `motor` classes compared to passenger vehicles. Scaling inference resolution to `1280x1280` substantially improves small-object recall, but increases GPU forward-pass latency by roughly `2.5x` and raises peak VRAM consumption.
+* **Ground-Truth Annotation Gaps (Apparent False Positives):** Visual inspection of diagnostic overlays shows that a notable fraction of counted `False Positives` (`FP`) correspond to real stationary or partially occluded vehicles in parking lots and side streets that were omitted from VisDrone human annotations and not masked as ignored regions (`class == 0`).
+* **Dense-Traffic ID Swaps under Aggressive Occlusion Recovery:** To prevent trajectory fragmentation during rapid UAV yaw/pitch maneuvers, ByteTrack is configured with a long track retention buffer (`lost_track_buffer=120` frames), a `0.50` high-confidence track initialization threshold (`0.35` low-confidence rescue), and a permissive `0.05` IoU matching floor. While this preserves IDs across transient occlusions, closely spaced vehicles moving in parallel lanes can trigger localized ID swaps.
+* **Transformer PTQ INT8 Sensitivity:** Unlike CNN backbones, `RT-DETR-L` cannot be deployed with standard Post-Training Quantization to `INT8` without Quantization-Aware Training (QAT) due to severe logit compression in attention layers.
 
 ---
 
@@ -196,3 +216,10 @@ run_visualization(
     show_gmc_flow=True,
 )
 ```
+
+---
+
+## Dataset, Privacy & Ethics
+
+* **Data Source:** All experiments use the publicly available academic **[VisDrone2019-MOT](https://github.com/VisDrone/VisDrone-Dataset)** benchmark dataset collected by the AISKYEYE team at Tianjin University for non-commercial computer vision research.
+* **Privacy & Anonymization:** Aerial footage is captured at high altitude and resolution where individual facial features and license plate characters are not identifiable; no personally identifiable information (PII) is stored or processed by the tracking pipeline.
